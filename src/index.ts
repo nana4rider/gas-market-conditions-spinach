@@ -22,8 +22,6 @@ gas._main = () => {
   const WEBHOOK_URLS = getProperty('WEBHOOK_URLS').split('|');
 
   const spreadSheet = SpreadsheetApp.openById(SPINACH_SPREAD_SHEET_ID);
-  // ex: [{"priceAl": 90, "priceAm": 100},
-  //      {"priceAl": 85, "priceAm": 95}
   const settingsSheet = spreadSheet.getSheetByName('SETTINGS');
   if (!settingsSheet) throw new Error('SETTINGSシートが存在しません');
 
