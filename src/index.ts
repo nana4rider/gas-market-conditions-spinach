@@ -2,11 +2,11 @@ import { DateTime } from 'luxon';
 
 type UpdateData = {
   mailDate: DateTime
-  date: DateTime
-  priceAl: number
-  priceAm: number
-  priceAs: number
-  quantity: number
+  targetDate: DateTime
+  quantity?: number,
+  price: {
+    al?: number, am?: number, as?: number
+  }
 };
 
 const gas: any = global;
@@ -61,7 +61,7 @@ gas._main = () => {
         if (line) yield line;
       }
     })();
-    const readLine = () => {
+    const readBody = () => {
       const value = nextLineGenerator.next().value;
       return value ? value : '';
     };
@@ -87,17 +87,17 @@ gas._main = () => {
 
     const mailMonth = mailDate.month;
     // mm月dd日出荷
-    const linePd = readLine();
+    const linePd = readBody();
     const pdMatcher = linePd.match(/(.+)月\s*(.+)日出荷/);
     if (!pdMatcher) return;
     // AL, AM, AS
-    const lineAl = readLine();
-    const lineAm = readLine();
-    const lineAs = readLine();
+    const lineAl = readBody();
+    const lineAm = readBody();
+    const lineAs = readBody();
     // label 出荷数量
-    readLine();
+    readBody();
     // n箱
-    const lineQty = readLine();
+    const lineQty = readBody();
     // 本文に年がないので、メールの時刻から取得する
     let year = mailDate.year;
     const month = Number(pdMatcher[1]);
@@ -107,21 +107,23 @@ gas._main = () => {
 
     const updateData: UpdateData = {
       mailDate: mailDate,
-      date: DateTime.local(year, month, day),
-      priceAl: toNumber(lineAl),
-      priceAm: toNumber(lineAm),
-      priceAs: toNumber(lineAs),
-      quantity: toNumber(lineQty)
+      targetDate: DateTime.local(year, month, day),
+      quantity: formatNumber(lineQty),
+      price: {
+        al: formatNumber(lineAl),
+        am: formatNumber(lineAm),
+        as: formatNumber(lineAs),
+      }
     };
 
     updateDatas.push(updateData);
   };
 
-  updateDatas = updateDatas.sort((a, b) => a.date.diff(b.date).milliseconds);
+  updateDatas = updateDatas.sort((a, b) => a.targetDate.diff(b.targetDate).milliseconds);
 
   // シートに書き出し
   for (const updateData of updateDatas) {
-    const sheetName = String(updateData.date.year);
+    const sheetName = String(updateData.targetDate.year);
     let sheet = spreadSheet.getSheetByName(sheetName);
 
     // シートが存在しない場合、雛形からコピーして作成する
@@ -137,11 +139,11 @@ gas._main = () => {
 
     const row = sheet.getLastRow() + 1;
     let column = 1;
-    sheet.getRange(row, column++).setValue(updateData.date.toFormat('yyyy/MM/dd'));
-    sheet.getRange(row, column++).setValue(updateData.priceAl === 0 ? '' : updateData.priceAl);
-    sheet.getRange(row, column++).setValue(updateData.priceAm === 0 ? '' : updateData.priceAm);
-    sheet.getRange(row, column++).setValue(updateData.priceAs === 0 ? '' : updateData.priceAs);
-    sheet.getRange(row, column++).setValue(updateData.quantity === 0 ? '' : updateData.quantity);
+    sheet.getRange(row, column++).setValue(updateData.targetDate.toFormat('yyyy/MM/dd'));
+    sheet.getRange(row, column++).setValue(updateData.price.al);
+    sheet.getRange(row, column++).setValue(updateData.price.am);
+    sheet.getRange(row, column++).setValue(updateData.price.as);
+    sheet.getRange(row, column++).setValue(updateData.quantity);
     sheet.getRange(row, column++).setValue(updateData.mailDate.toFormat('yyyy/MM/dd HH:mm:ss'));
   };
 
@@ -164,8 +166,8 @@ function normalize(s: string) {
     s => String.fromCharCode(s.charCodeAt(0) - 65248)).replace(/　/g, ' ');
 }
 
-function toNumber(s: string): number {
+function formatNumber(s: string): number | undefined {
   const sn = s.replace(/\D*(\d*)\D*/, '$1');
-  if (!sn) return 0;
+  if (!sn) return undefined;
   return Number(sn);
 }
