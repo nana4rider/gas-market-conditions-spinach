@@ -167,7 +167,14 @@ function normalize(s: string) {
 }
 
 function formatNumber(s: string): number | undefined {
-  const sn = s.replace(/\D*(\d*)\D*/, '$1');
-  if (!sn) return undefined;
-  return Number(sn);
+  const ematcher = s.match(/(\d+)$/);
+  if (ematcher) {
+    return Number(ematcher[1]);
+  }
+  const smatcher = s.match(/^(\d+)/);
+  if (smatcher) {
+    return Number(smatcher[1]);
+  }
+
+  return undefined;
 }
