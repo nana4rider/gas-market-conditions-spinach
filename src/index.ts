@@ -89,7 +89,7 @@ gas._main = () => {
     // mm月dd日出荷
     const linePd = readBody();
     const pdMatcher = linePd.match(/(.+)月\s*(.+)日出荷/);
-    if (!pdMatcher) return;
+    if (!pdMatcher) continue;
     // AL, AM, AS
     const lineAl = readBody();
     const lineAm = readBody();
